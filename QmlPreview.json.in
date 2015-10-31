@@ -1,0 +1,12 @@
+{
+    \"Name\" : \"QmlPreview\",
+    \"Version\" : \"$$QTCREATOR_VERSION\",
+    \"CompatVersion\" : \"$$QTCREATOR_COMPAT_VERSION\",
+    \"Vendor\" : \"Axel AF\",
+    \"Copyright\" : \"(C) 2015 Axel AF\",
+    \"License\" : "\ \",
+    \"Category\" : \"Qt Creator\",
+    \"Description\" : \"A QtCreator plugin to view the result of a qml file in realtime.\",
+    \"Url\" : \"",
+    $$dependencyList
+}
