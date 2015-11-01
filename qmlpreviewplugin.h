@@ -6,6 +6,8 @@
 namespace QmlPreview {
 namespace Internal {
 
+class PreviewWidget;
+
 class QmlPreviewPlugin : public ExtensionSystem::IPlugin
 {
     Q_OBJECT
@@ -17,6 +19,13 @@ public:
 
     virtual bool initialize(const QStringList &arguments, QString *errorMessage);
     virtual void extensionsInitialized();
+
+private slots:
+    void onShowPreviewRequested();
+    void onCloseButtonClicked();
+
+private:
+    PreviewWidget *m_previewWidget;
 };
 
 } // namespace Internal

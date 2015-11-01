@@ -6,13 +6,19 @@ QtcPlugin {
 
     Depends { name: "Qt"; submodules: ["widgets"] }
     Depends { name: "Core" }
+    Depends { name: "QmlJSEditor" }
+    Depends { name: "QmlJSTools" }
+    Depends { name: "Utils" }
 
     cpp.cxxFlags: "-std=c++11"
     cpp.cxxLanguageVersion: "c++11"
 
     files: [
+        "qmlpreviewconstants.h",
         "qmlpreviewplugin.cpp",
         "qmlpreviewplugin.h",
+        "widgets/previewwidget.cpp",
+        "widgets/previewwidget.h",
     ]
 
     Group {
