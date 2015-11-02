@@ -25,14 +25,10 @@ namespace Internal {
 
 QmlPreviewPlugin::QmlPreviewPlugin() :
     m_previewWidget(0)
-{
-
-}
+{}
 
 QmlPreviewPlugin::~QmlPreviewPlugin()
-{
-
-}
+{}
 
 bool QmlPreviewPlugin::initialize(const QStringList &arguments, QString *errorMessage)
 {
@@ -74,16 +70,33 @@ void QmlPreviewPlugin::onShowPreviewRequested()
         m_previewWidget = new PreviewWidget(PreviewWidget::SideBarWidget);
 
         connect(m_previewWidget, &PreviewWidget::closeButtonClicked,
-                this, &QmlPreviewPlugin::onCloseButtonClicked);
+                this, &QmlPreviewPlugin::onPreviewCloseButtonClicked);
+
+        connect(m_previewWidget, &PreviewWidget::styleToggled,
+                this, &QmlPreviewPlugin::onPreviewStyleToggled);
     }
 
     Core::RightPaneWidget::instance()->setWidget(m_previewWidget);
     Core::RightPaneWidget::instance()->setShown(true);
 }
 
-void QmlPreviewPlugin::onCloseButtonClicked()
+void QmlPreviewPlugin::onPreviewCloseButtonClicked()
 {
     Core::RightPaneWidget::instance()->setShown(false);
+}
+
+void QmlPreviewPlugin::onPreviewStyleToggled()
+{
+    if (m_previewWidget->style() == PreviewWidget::ExternalWindow) {
+        Core::RightPaneWidget::instance()->setWidget(0);
+        Core::RightPaneWidget::instance()->setShown(false);
+        m_previewWidget->show();
+    }
+    else {
+        m_previewWidget->close();
+        Core::RightPaneWidget::instance()->setWidget(m_previewWidget);
+        Core::RightPaneWidget::instance()->setShown(true);
+    }
 }
 
 } // namespace Internal

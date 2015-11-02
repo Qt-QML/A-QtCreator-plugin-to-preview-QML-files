@@ -22,7 +22,8 @@ public:
 
 private slots:
     void onShowPreviewRequested();
-    void onCloseButtonClicked();
+    void onPreviewCloseButtonClicked();
+    void onPreviewStyleToggled();
 
 private:
     PreviewWidget *m_previewWidget;
