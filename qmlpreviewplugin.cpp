@@ -2,6 +2,7 @@
 
 // Qt includes
 #include <QMenu>
+#include <QTemporaryFile>
 
 // QtCreator includes
 #include <coreplugin/actionmanager/actioncontainer.h>
@@ -23,12 +24,29 @@
 namespace QmlPreview {
 namespace Internal {
 
+
+////////////////////////// QmlPreviewPlugin //////////////////////////
+
 QmlPreviewPlugin::QmlPreviewPlugin() :
-    m_previewWidget(0)
-{}
+    m_qmlDocument(0),
+    m_previewFile(new QTemporaryFile(this)),
+    m_previewWidget(new PreviewWidget(PreviewWidget::SideBarWidget))
+{
+    connect(m_previewWidget, &PreviewWidget::closeButtonClicked,
+            [=]() {
+        Core::RightPaneWidget::instance()->setShown(false);
+    });
+
+    connect(m_previewWidget, &PreviewWidget::styleToggled,
+            this, &QmlPreviewPlugin::onPreviewStyleToggled);
+
+    m_previewFile->open();
+}
 
 QmlPreviewPlugin::~QmlPreviewPlugin()
-{}
+{
+    m_previewFile->close();
+}
 
 bool QmlPreviewPlugin::initialize(const QStringList &arguments, QString *errorMessage)
 {
@@ -46,7 +64,13 @@ bool QmlPreviewPlugin::initialize(const QStringList &arguments, QString *errorMe
     qmlJsToolsContainer->addAction(command);
 
     connect(showPreviewAction, &QAction::triggered,
-            this, &QmlPreviewPlugin::onShowPreviewRequested);
+            [=]() {
+        showPreviewWidget(true);
+    });
+
+    // Connect with the other plugins
+    connect(Core::EditorManager::instance(), &Core::EditorManager::currentEditorChanged,
+            this, &QmlPreviewPlugin::onCurrentEditorChanged);
 
     return true;
 }
@@ -56,47 +80,80 @@ void QmlPreviewPlugin::extensionsInitialized()
 
 }
 
-void QmlPreviewPlugin::onShowPreviewRequested()
+void QmlPreviewPlugin::onCurrentEditorChanged(Core::IEditor *editor)
 {
-    Core::IEditor *currentEditor = Core::EditorManager::instance()->currentEditor();
-    if (!currentEditor)
-        return;
+    QmlJSEditor::QmlJSEditorDocument *qmlDoc = nullptr;
 
-    auto isQmlEditor = qobject_cast<QmlJSEditor::QmlJSEditorDocument *>(currentEditor->document());
-    if (!isQmlEditor)
-        return;
+    if (editor)
+        qmlDoc = qobject_cast<QmlJSEditor::QmlJSEditorDocument *>(editor->document());
 
-    if (!m_previewWidget) {
-        m_previewWidget = new PreviewWidget(PreviewWidget::SideBarWidget);
+    if (m_qmlDocument != qmlDoc) {
+        if (m_qmlDocument) {
+            disconnect(m_qmlDocument, &QmlJSEditor::QmlJSEditorDocument::contentsChanged,
+                       this, &QmlPreviewPlugin::onQmlDocumentContentsChanged);
+        }
 
-        connect(m_previewWidget, &PreviewWidget::closeButtonClicked,
-                this, &QmlPreviewPlugin::onPreviewCloseButtonClicked);
+        m_qmlDocument = qmlDoc;
 
-        connect(m_previewWidget, &PreviewWidget::styleToggled,
-                this, &QmlPreviewPlugin::onPreviewStyleToggled);
+        if (qmlDoc) {
+            connect(qmlDoc, &QmlJSEditor::QmlJSEditorDocument::contentsChanged,
+                    this, &QmlPreviewPlugin::onQmlDocumentContentsChanged);
+
+            if (m_previewWidget->url().isEmpty()) {
+                updatePreviewFile();
+                m_previewWidget->setUrl(QUrl(m_previewFile->fileName()));
+            }
+        }
+        else {
+            m_previewWidget->setUrl(QUrl());
+        }
     }
-
-    Core::RightPaneWidget::instance()->setWidget(m_previewWidget);
-    Core::RightPaneWidget::instance()->setShown(true);
 }
 
-void QmlPreviewPlugin::onPreviewCloseButtonClicked()
+void QmlPreviewPlugin::onQmlDocumentContentsChanged()
 {
-    Core::RightPaneWidget::instance()->setShown(false);
+    if (!Core::RightPaneWidget::instance()->isShown() || !m_previewWidget->isVisible())
+        return;
+
+    updatePreviewFile();
+
+    m_previewWidget->reload();
 }
 
 void QmlPreviewPlugin::onPreviewStyleToggled()
 {
     if (m_previewWidget->style() == PreviewWidget::ExternalWindow) {
-        Core::RightPaneWidget::instance()->setWidget(0);
-        Core::RightPaneWidget::instance()->setShown(false);
+        showPreviewWidget(false);
         m_previewWidget->show();
     }
     else {
         m_previewWidget->close();
+        showPreviewWidget(true);
+    }
+}
+
+void QmlPreviewPlugin::showPreviewWidget(bool show)
+{
+    if (show) {
+        updatePreviewFile();
+
+        m_previewWidget->reload();
+
         Core::RightPaneWidget::instance()->setWidget(m_previewWidget);
         Core::RightPaneWidget::instance()->setShown(true);
     }
+    else {
+        Core::RightPaneWidget::instance()->setWidget(0);
+        Core::RightPaneWidget::instance()->setShown(false);
+    }
+}
+
+void QmlPreviewPlugin::updatePreviewFile()
+{
+    m_previewFile->resize(0);
+    m_previewFile->write(m_qmlDocument->plainText().toStdString().c_str());
+    m_previewFile->flush();
+    m_previewFile->seek(0);
 }
 
 } // namespace Internal

@@ -5,6 +5,9 @@
 
 class QAction;
 class QHBoxLayout;
+class QLabel;
+class QQuickWidget;
+class QStackedWidget;
 class QToolButton;
 
 namespace QmlPreview {
@@ -26,11 +29,18 @@ public:
     WidgetStyle style() const;
     void setWidgetStyle(WidgetStyle style);
 
+    QUrl url() const;
+    void setUrl(const QUrl &url);
+
+public slots:
+    void reload();
+
 signals:
     void closeButtonClicked();
     void styleToggled();
 
 protected:
+    void resizeEvent(QResizeEvent *e) override;
     void closeEvent(QCloseEvent *e) override;
 
 private:
@@ -43,6 +53,9 @@ private:
     QToolButton *m_closeBtn;
     QAction *m_toggleStyleAction;
     QToolButton *m_toggleStyleBtn;
+    QStackedWidget *m_stacked;
+    QLabel *m_noPreviewLabel;
+    QQuickWidget *m_quickView;
 };
 
 } // namespace Internal

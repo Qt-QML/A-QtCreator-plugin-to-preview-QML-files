@@ -3,6 +3,16 @@
 
 #include <extensionsystem/iplugin.h>
 
+class QTemporaryFile;
+
+namespace Core {
+class IEditor;
+}
+
+namespace QmlJSEditor {
+class QmlJSEditorDocument;
+}
+
 namespace QmlPreview {
 namespace Internal {
 
@@ -21,11 +31,16 @@ public:
     virtual void extensionsInitialized();
 
 private slots:
-    void onShowPreviewRequested();
-    void onPreviewCloseButtonClicked();
+    void onCurrentEditorChanged(Core::IEditor *editor);
+    void onQmlDocumentContentsChanged();
     void onPreviewStyleToggled();
 
 private:
+    void showPreviewWidget(bool show);
+    void updatePreviewFile();
+
+    QmlJSEditor::QmlJSEditorDocument *m_qmlDocument;
+    QTemporaryFile *m_previewFile;
     PreviewWidget *m_previewWidget;
 };
 

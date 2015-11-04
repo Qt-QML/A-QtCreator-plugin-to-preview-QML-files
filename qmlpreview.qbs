@@ -4,10 +4,11 @@ import qbs.FileInfo
 QtcPlugin {
     name: "QmlPreview"
 
-    Depends { name: "Qt"; submodules: ["widgets"] }
+    Depends { name: "Qt"; submodules: ["widgets", "quick", "quickwidgets"] }
     Depends { name: "Core" }
     Depends { name: "QmlJSEditor" }
     Depends { name: "QmlJSTools" }
+    Depends { name: "TextEditor" }
     Depends { name: "Utils" }
 
     cpp.cxxFlags: "-std=c++11"
