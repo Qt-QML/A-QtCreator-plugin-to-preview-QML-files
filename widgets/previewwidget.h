@@ -36,8 +36,9 @@ public slots:
     void reload();
 
 signals:
+    void trackCurrentEditorClicked(bool);
     void closeButtonClicked();
-    void styleToggled();
+    void styleToggled(WidgetStyle);
 
 protected:
     void resizeEvent(QResizeEvent *e) override;
@@ -49,10 +50,14 @@ private:
 private:
     WidgetStyle m_style;
     QHBoxLayout *m_toolBarLayout;
+    /* actions */
+    QAction *m_trackCurrentEditorAction;
+    QToolButton *m_trackCurrentEditorBtn;
     QAction *m_closeAction;
     QToolButton *m_closeBtn;
     QAction *m_toggleStyleAction;
     QToolButton *m_toggleStyleBtn;
+
     QStackedWidget *m_stacked;
     QLabel *m_noPreviewLabel;
     QQuickWidget *m_quickView;

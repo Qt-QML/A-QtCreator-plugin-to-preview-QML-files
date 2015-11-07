@@ -30,18 +30,26 @@ public:
     virtual bool initialize(const QStringList &arguments, QString *errorMessage);
     virtual void extensionsInitialized();
 
+    bool trackCurrentEditor() const;
+
 private slots:
+    void setTrackCurrentEditor(bool trackCurrentEditor);
+
+    void onEditorAboutToClose(Core::IEditor *editor);
     void onCurrentEditorChanged(Core::IEditor *editor);
     void onQmlDocumentContentsChanged();
-    void onPreviewStyleToggled();
 
 private:
+    bool previewIsVisible() const;
+    void processEditor(Core::IEditor *editor);
     void showPreviewWidget(bool show);
     void updatePreviewFile();
 
     QmlJSEditor::QmlJSEditorDocument *m_qmlDocument;
     QTemporaryFile *m_previewFile;
     PreviewWidget *m_previewWidget;
+
+    bool m_trackCurrentEditor;
 };
 
 } // namespace Internal

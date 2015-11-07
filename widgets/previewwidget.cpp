@@ -27,6 +27,8 @@ PreviewWidget::PreviewWidget(WidgetStyle style, QWidget *parent) :
     QWidget(parent),
     m_style(style),
     m_toolBarLayout(0),
+    m_trackCurrentEditorAction(0),
+    m_trackCurrentEditorBtn(new QToolButton(this)),
     m_closeAction(0),
     m_closeBtn(new QToolButton(this)),
     m_toggleStyleAction(0),
@@ -39,6 +41,15 @@ PreviewWidget::PreviewWidget(WidgetStyle style, QWidget *parent) :
     m_toolBarLayout = new QHBoxLayout(toolBar);
 
     // Create actions
+    m_trackCurrentEditorAction = new QAction(QIcon(QLatin1String(Core::Constants::ICON_LINK)),
+                                             QString(), toolBar);
+    m_trackCurrentEditorAction->setCheckable(true);
+
+    connect(m_trackCurrentEditorAction, &QAction::toggled,
+            this, &PreviewWidget::trackCurrentEditorClicked);
+
+    m_trackCurrentEditorBtn->setDefaultAction(m_trackCurrentEditorAction);
+
     m_closeAction = new QAction(QIcon(QLatin1String(Core::Constants::ICON_BUTTON_CLOSE)),
                                 QString(), toolBar);
     connect(m_closeAction, &QAction::triggered,
@@ -83,6 +94,7 @@ PreviewWidget::PreviewWidget(WidgetStyle style, QWidget *parent) :
     m_toolBarLayout->setSpacing(0);
 
     m_toolBarLayout->addStretch();
+    m_toolBarLayout->addWidget(m_trackCurrentEditorBtn);
     m_toolBarLayout->addWidget(m_toggleStyleBtn);
     m_toolBarLayout->addWidget(m_closeBtn);
 
@@ -107,7 +119,7 @@ void PreviewWidget::setWidgetStyle(PreviewWidget::WidgetStyle style)
 
         rebuildToolBar(style);
 
-        emit styleToggled();
+        emit styleToggled(style);
     }
 }
 
