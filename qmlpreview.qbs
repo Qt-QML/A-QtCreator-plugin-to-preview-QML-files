@@ -6,6 +6,7 @@ QtcPlugin {
 
     Depends { name: "Qt"; submodules: ["widgets", "quick", "quickwidgets"] }
     Depends { name: "Core" }
+    Depends { name: "QmlJS" }
     Depends { name: "QmlJSEditor" }
     Depends { name: "QmlJSTools" }
     Depends { name: "TextEditor" }

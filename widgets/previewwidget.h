@@ -57,6 +57,7 @@ protected:
 
 private:
     void rebuildToolBar(WidgetStyle style);
+    QStringList retrieveImportPaths() const;
 
 private:
     WidgetStyle m_style;

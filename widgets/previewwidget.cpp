@@ -17,6 +17,8 @@
 #include <coreplugin/editormanager/documentmodel.h>
 #include <coreplugin/idocument.h>
 
+#include <qmljstools/qmljsmodelmanager.h>
+
 #include <utils/styledbar.h>
 
 // Plugin includes
@@ -151,6 +153,10 @@ void PreviewWidget::setUrl(const QUrl &url)
 {
     if (m_quickView->source() != url) {
         m_quickView->engine()->clearComponentCache();
+
+        // Set the import paths
+        QStringList importPaths = retrieveImportPaths();
+        m_quickView->engine()->setImportPathList(importPaths);
         m_quickView->setSource(url);
 
         if (url.isEmpty()) {
@@ -221,6 +227,17 @@ void PreviewWidget::rebuildToolBar(PreviewWidget::WidgetStyle style)
         m_toolBarLayout->removeWidget(m_closeBtn);
         m_closeBtn->setVisible(false);
     }
+}
+
+QStringList PreviewWidget::retrieveImportPaths() const
+{
+    QStringList ret;
+
+    QmlJS::PathsAndLanguages p = QmlJS::ModelManagerInterface::instance()->importPaths();
+    for (int i = 0; i < p.size(); ++i)
+        ret << p.at(i).path().toString();
+
+    return ret;
 }
 
 } // namespace Internal
