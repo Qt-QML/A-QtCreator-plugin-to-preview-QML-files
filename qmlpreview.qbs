@@ -15,6 +15,8 @@ QtcPlugin {
     cpp.cxxLanguageVersion: "c++11"
 
     files: [
+        "previewsfiltermodel.cpp",
+        "previewsfiltermodel.h",
         "qmlpreviewconstants.h",
         "qmlpreviewplugin.cpp",
         "qmlpreviewplugin.h",

@@ -4,6 +4,7 @@
 #include <QAction>
 #include <QBoxLayout>
 #include <QCloseEvent>
+#include <QComboBox>
 #include <QDebug>
 #include <QLabel>
 #include <QQmlEngine>
@@ -13,9 +14,13 @@
 
 // QtCreator includes
 #include <coreplugin/coreconstants.h>
+#include <coreplugin/editormanager/documentmodel.h>
+#include <coreplugin/idocument.h>
 
 #include <utils/styledbar.h>
 
+// Plugin includes
+#include "../previewsfiltermodel.h"
 
 namespace QmlPreview {
 namespace Internal {
@@ -27,6 +32,8 @@ PreviewWidget::PreviewWidget(WidgetStyle style, QWidget *parent) :
     QWidget(parent),
     m_style(style),
     m_toolBarLayout(0),
+    m_openQmlDocumentsModel(new PreviewsFilterModel(this)),
+    m_openQmlDocumentsCBox(new QComboBox(this)),
     m_trackCurrentEditorAction(0),
     m_trackCurrentEditorBtn(new QToolButton(this)),
     m_closeAction(0),
@@ -46,7 +53,7 @@ PreviewWidget::PreviewWidget(WidgetStyle style, QWidget *parent) :
     m_trackCurrentEditorAction->setCheckable(true);
 
     connect(m_trackCurrentEditorAction, &QAction::toggled,
-            this, &PreviewWidget::trackCurrentEditorClicked);
+            this, &PreviewWidget::trackEditorButtonClicked);
 
     m_trackCurrentEditorBtn->setDefaultAction(m_trackCurrentEditorAction);
 
@@ -65,11 +72,22 @@ PreviewWidget::PreviewWidget(WidgetStyle style, QWidget *parent) :
 
     m_toggleStyleBtn->setDefaultAction(m_toggleStyleAction);
 
+    // Build UI
+    m_openQmlDocumentsModel->setDynamicSortFilter(false);
+    m_openQmlDocumentsCBox->setModel(m_openQmlDocumentsModel);
+
+    connect(m_openQmlDocumentsCBox, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+            [=](int row) {
+        QModelIndex modelIndex = m_openQmlDocumentsModel->index(row, 0);
+        int realIndex = m_openQmlDocumentsModel->mapToSource(modelIndex).row();
+
+        emit documentChangeRequested(realIndex);
+    });
+
     m_quickView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     m_quickView->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_quickView->setVisible(false);
 
-    // Build UI
     const QString placeholderText = tr("<html><body style=\"color:#909090; font-size:14px\">"
                                        "<div align='center'>"
                                        "<div style=\"font-size:20px\">No preview available</div>"
@@ -94,6 +112,7 @@ PreviewWidget::PreviewWidget(WidgetStyle style, QWidget *parent) :
     m_toolBarLayout->setSpacing(0);
 
     m_toolBarLayout->addStretch();
+    m_toolBarLayout->addWidget(m_openQmlDocumentsCBox);
     m_toolBarLayout->addWidget(m_trackCurrentEditorBtn);
     m_toolBarLayout->addWidget(m_toggleStyleBtn);
     m_toolBarLayout->addWidget(m_closeBtn);
@@ -142,6 +161,18 @@ void PreviewWidget::setUrl(const QUrl &url)
             m_quickView->setVisible(true);
             m_stacked->setCurrentWidget(m_quickView);
         }
+    }
+}
+
+void PreviewWidget::setDocument(Core::IDocument *document)
+{
+    int rowOfDoc = Core::DocumentModel::rowOfDocument(document);
+
+    QModelIndex index = Core::DocumentModel::model()->index(rowOfDoc, 0);
+    int mappedRow = m_openQmlDocumentsModel->mapFromSource(index).row();
+
+    if (m_openQmlDocumentsCBox->currentIndex() != mappedRow) {
+        m_openQmlDocumentsCBox->setCurrentIndex(mappedRow);
     }
 }
 

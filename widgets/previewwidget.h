@@ -4,14 +4,22 @@
 #include <QWidget>
 
 class QAction;
+class QComboBox;
 class QHBoxLayout;
 class QLabel;
 class QQuickWidget;
+class QSortFilterProxyModel;
 class QStackedWidget;
 class QToolButton;
 
+namespace Core {
+class IDocument;
+}
+
 namespace QmlPreview {
 namespace Internal {
+
+class PreviewsFilterModel;
 
 class PreviewWidget : public QWidget
 {
@@ -32,11 +40,14 @@ public:
     QUrl url() const;
     void setUrl(const QUrl &url);
 
+    void setDocument(Core::IDocument *document);
+
 public slots:
     void reload();
 
 signals:
-    void trackCurrentEditorClicked(bool);
+    void documentChangeRequested(int);
+    void trackEditorButtonClicked(bool);
     void closeButtonClicked();
     void styleToggled(WidgetStyle);
 
@@ -50,6 +61,8 @@ private:
 private:
     WidgetStyle m_style;
     QHBoxLayout *m_toolBarLayout;
+    PreviewsFilterModel *m_openQmlDocumentsModel;
+    QComboBox *m_openQmlDocumentsCBox;
     /* actions */
     QAction *m_trackCurrentEditorAction;
     QToolButton *m_trackCurrentEditorBtn;

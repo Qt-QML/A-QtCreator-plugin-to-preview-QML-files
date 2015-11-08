@@ -7,6 +7,7 @@
 // QtCreator includes
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/actionmanager/actionmanager.h>
+#include <coreplugin/editormanager/documentmodel.h>
 #include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/editormanager/ieditor.h>
 #include <coreplugin/icore.h>
@@ -28,35 +29,10 @@ namespace Internal {
 ////////////////////////// QmlPreviewPlugin //////////////////////////
 
 QmlPreviewPlugin::QmlPreviewPlugin() :
-    m_qmlDocument(0),
+    m_previewed(0),
     m_previewFile(new QTemporaryFile(this)),
-    m_previewWidget(new PreviewWidget(PreviewWidget::SideBarWidget)),
     m_trackCurrentEditor(false)
 {
-    connect(m_previewWidget, &PreviewWidget::trackCurrentEditorClicked,
-            this, &QmlPreviewPlugin::setTrackCurrentEditor);
-
-    // onPreviewWidgetCloseButtonClicked
-    connect(m_previewWidget, &PreviewWidget::closeButtonClicked,
-            [=]() {
-        Core::RightPaneWidget::instance()->setShown(false);
-    });
-
-    // onPreviewWidgetStyleToggled
-    connect(m_previewWidget, &PreviewWidget::styleToggled,
-            [=](PreviewWidget::WidgetStyle style) {
-        if (style == PreviewWidget::ExternalWindow) {
-            showPreviewWidget(false);
-            m_previewWidget->show();
-            Core::ICore::raiseWindow(m_previewWidget);
-        }
-        else {
-            m_previewWidget->close();
-            showPreviewWidget(true);
-        }
-
-    });
-
     m_previewFile->open();
 }
 
@@ -82,14 +58,11 @@ bool QmlPreviewPlugin::initialize(const QStringList &arguments, QString *errorMe
 
     connect(showPreviewAction, &QAction::triggered,
             [=]() {
-        processEditor(Core::EditorManager::currentEditor());
+        setPreviewedDocument(Core::EditorManager::currentEditor()->document());
         showPreviewWidget(true);
     });
 
     // Connect with the other plugins
-    connect(Core::EditorManager::instance(), &Core::EditorManager::currentEditorChanged,
-            this, &QmlPreviewPlugin::onCurrentEditorChanged);
-
     connect(Core::EditorManager::instance(), &Core::EditorManager::editorAboutToClose,
             this, &QmlPreviewPlugin::onEditorAboutToClose);
 
@@ -98,7 +71,34 @@ bool QmlPreviewPlugin::initialize(const QStringList &arguments, QString *errorMe
 
 void QmlPreviewPlugin::extensionsInitialized()
 {
+    // Create the preview widget
+    m_previewWidget = new PreviewWidget(PreviewWidget::SideBarWidget);
 
+    connect(m_previewWidget, &PreviewWidget::documentChangeRequested,
+            this, &QmlPreviewPlugin::onPreviewedDocumentChangeRequested);
+
+    connect(m_previewWidget, &PreviewWidget::trackEditorButtonClicked,
+            this, &QmlPreviewPlugin::setTrackCurrentEditor);
+
+    // onPreviewWidgetCloseButtonClicked
+    connect(m_previewWidget, &PreviewWidget::closeButtonClicked,
+            [=]() {
+        Core::RightPaneWidget::instance()->setShown(false);
+    });
+
+    // onPreviewWidgetStyleToggled
+    connect(m_previewWidget, &PreviewWidget::styleToggled,
+            [=](PreviewWidget::WidgetStyle style) {
+        if (style == PreviewWidget::ExternalWindow) {
+            showPreviewWidget(false);
+            m_previewWidget->show();
+            Core::ICore::raiseWindow(m_previewWidget);
+        }
+        else {
+            m_previewWidget->close();
+            showPreviewWidget(true);
+        }
+    });
 }
 
 bool QmlPreviewPlugin::trackCurrentEditor() const
@@ -111,8 +111,16 @@ void QmlPreviewPlugin::setTrackCurrentEditor(bool track)
     if (m_trackCurrentEditor != track) {
         m_trackCurrentEditor = track;
 
-        if (m_trackCurrentEditor)
-            processEditor(Core::EditorManager::instance()->currentEditor());
+        if (m_trackCurrentEditor) {
+            connect(Core::EditorManager::instance(), &Core::EditorManager::currentEditorChanged,
+                    this, &QmlPreviewPlugin::onCurrentEditorChanged);
+
+            setPreviewedDocument(Core::EditorManager::instance()->currentEditor()->document());
+        }
+        else {
+            disconnect(Core::EditorManager::instance(), &Core::EditorManager::currentEditorChanged,
+                       this, &QmlPreviewPlugin::onCurrentEditorChanged);
+        }
     }
 }
 
@@ -120,11 +128,11 @@ void QmlPreviewPlugin::onEditorAboutToClose(Core::IEditor *editor)
 {
     Q_ASSERT(editor);
 
-    if (m_qmlDocument) {
-        disconnect(m_qmlDocument, &QmlJSEditor::QmlJSEditorDocument::contentsChanged,
+    if (m_previewed) {
+        disconnect(m_previewed, &QmlJSEditor::QmlJSEditorDocument::contentsChanged,
                    this, &QmlPreviewPlugin::onQmlDocumentContentsChanged);
 
-        m_qmlDocument = nullptr;
+        m_previewed = nullptr;
     }
 }
 
@@ -133,8 +141,10 @@ void QmlPreviewPlugin::onCurrentEditorChanged(Core::IEditor *editor)
     if (!previewIsVisible())
         return;
 
-    if (m_trackCurrentEditor)
-        processEditor(editor);
+    if (m_trackCurrentEditor) {
+        Core::IDocument *doc = (editor) ? (editor->document()) : 0;
+        setPreviewedDocument(doc);
+    }
 }
 
 void QmlPreviewPlugin::onQmlDocumentContentsChanged()
@@ -145,6 +155,19 @@ void QmlPreviewPlugin::onQmlDocumentContentsChanged()
     updatePreviewFile();
 
     m_previewWidget->reload();
+}
+
+void QmlPreviewPlugin::onPreviewedDocumentChangeRequested(int index)
+{
+    Core::DocumentModel::Entry *documentEntry = Core::DocumentModel::entryAtRow(index);
+    if (!documentEntry)
+        setPreviewedDocument(0);
+    else {
+        Core::IDocument *doc = documentEntry->document;
+        Q_ASSERT(doc);
+
+        setPreviewedDocument(doc);
+    }
 }
 
 bool QmlPreviewPlugin::previewIsVisible() const
@@ -159,35 +182,47 @@ bool QmlPreviewPlugin::previewIsVisible() const
     return (isVisibleInRightPane || isVisibleAsWindow);
 }
 
-void QmlPreviewPlugin::processEditor(Core::IEditor *editor)
+void QmlPreviewPlugin::setPreviewedDocument(Core::IDocument *document)
 {
-    QmlJSEditor::QmlJSEditorDocument *qmlDoc = (!editor) ? nullptr
-                                                         : qobject_cast<QmlJSEditor::QmlJSEditorDocument *>(editor->document());
+    QmlJSEditor::QmlJSEditorDocument *qmlDoc = qobject_cast<QmlJSEditor::QmlJSEditorDocument *>(document);
 
-    if (m_qmlDocument != qmlDoc) {
-        if (m_qmlDocument) {
-            disconnect(m_qmlDocument, &QmlJSEditor::QmlJSEditorDocument::contentsChanged,
+    if (m_previewed != qmlDoc) {
+        if (m_previewed) {
+            disconnect(m_previewed, &QmlJSEditor::QmlJSEditorDocument::contentsChanged,
                        this, &QmlPreviewPlugin::onQmlDocumentContentsChanged);
         }
 
-        m_qmlDocument = qmlDoc;
+        m_previewed = qmlDoc;
 
-        if (m_qmlDocument) {
+        if (m_previewed) {
             connect(qmlDoc, &QmlJSEditor::QmlJSEditorDocument::contentsChanged,
                     this, &QmlPreviewPlugin::onQmlDocumentContentsChanged);
 
-            if (m_previewWidget->url().isEmpty()) {
-                updatePreviewFile();
-                m_previewWidget->setUrl(QUrl(m_previewFile->fileName()));
-            }
+            updatePreviewFile();
+
+            QUrl url(m_previewFile->fileName());
+
+            if (m_previewWidget->url() != url)
+                m_previewWidget->setUrl(url);
+            else
+                m_previewWidget->reload();
+
+            m_previewWidget->setDocument(m_previewed);
         }
         else {
             m_previewWidget->setUrl(QUrl());
+            m_previewWidget->setDocument(0);
         }
     }
     else if (!qmlDoc) {
         m_previewWidget->setUrl(QUrl());
+        m_previewWidget->setDocument(0);
     }
+
+    //    QUrl url = ;
+    //    m_previewWidget->setUrl(url);
+
+    //    m_previewWidget->setDocument(m_previewed);
 }
 
 void QmlPreviewPlugin::showPreviewWidget(bool show)
@@ -207,7 +242,7 @@ void QmlPreviewPlugin::showPreviewWidget(bool show)
 void QmlPreviewPlugin::updatePreviewFile()
 {
     m_previewFile->resize(0);
-    m_previewFile->write(m_qmlDocument->plainText().toStdString().c_str());
+    m_previewFile->write(m_previewed->plainText().toStdString().c_str());
     m_previewFile->flush();
     m_previewFile->seek(0);
 }

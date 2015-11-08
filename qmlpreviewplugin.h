@@ -6,6 +6,7 @@
 class QTemporaryFile;
 
 namespace Core {
+class IDocument;
 class IEditor;
 }
 
@@ -39,13 +40,15 @@ private slots:
     void onCurrentEditorChanged(Core::IEditor *editor);
     void onQmlDocumentContentsChanged();
 
+    void onPreviewedDocumentChangeRequested(int index);
+
 private:
     bool previewIsVisible() const;
-    void processEditor(Core::IEditor *editor);
+    void setPreviewedDocument(Core::IDocument *document);
     void showPreviewWidget(bool show);
     void updatePreviewFile();
 
-    QmlJSEditor::QmlJSEditorDocument *m_qmlDocument;
+    QmlJSEditor::QmlJSEditorDocument *m_previewed;
     QTemporaryFile *m_previewFile;
     PreviewWidget *m_previewWidget;
 
