@@ -1,7 +1,27 @@
 QmlPreviewPlugin for QtCreator
 ===============================
 
-A plugin to preview QML files.
+A plugin to preview QML files within QtCreator.
+
+![Overview](readme_resources/overview.png)
+
+Features
+---------
+
+- The preview can live as a widget in the right pane of QtCreator or as an window.
+
+- Three refresh modes : the preview will refresh if you modify the content of your QML document, or if you save your document, or manually.
+
+- Track the current editor : if it's enabled, the preview will render the QML document displayed in the QtCreator's current editor.
+
+- Your custom QML plugins (like `import MyPlugin 1.0`) are automatically loaded.
+
+Limitations
+------------
+
+- ApplicationWindow, Window and Screen QML types are not supported as root objects.
+
+- The preview can't handle any QML file which has a C++ backend (e.g. if this file uses a context property).
 
 Build the plugin
 -----------------
