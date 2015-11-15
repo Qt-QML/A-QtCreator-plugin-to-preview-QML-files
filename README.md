@@ -14,7 +14,7 @@ Features
 
 - Track the current editor : if it's enabled, the preview will render the QML document displayed in the QtCreator's current editor.
 
-- Your custom QML plugins (like `import MyPlugin 1.0`) are automatically loaded.
+- Your custom QML import paths are automatically loaded.
 
 Limitations
 ------------
