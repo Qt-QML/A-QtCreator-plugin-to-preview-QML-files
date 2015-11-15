@@ -8,7 +8,7 @@ A plugin to preview QML files within QtCreator.
 Features
 ---------
 
-- The preview can live as a widget in the right pane of QtCreator or as an window.
+- The preview can live as a widget in the right pane of QtCreator or as a window.
 
 - Three refresh modes : the preview will refresh if you modify the content of your QML document, or if you save your document, or manually.
 
