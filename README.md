@@ -25,7 +25,8 @@ Limitations
 
 Build the plugin
 -----------------
-Put all files in `<QtCreatorSourcesDir>/src/plugins/qmlpreview`.
+
+Put the `qmlpreview` folder in `<QtCreatorSourcesDir>/src/plugins/`.
 
 Now open `<QtCreatorSourcesDir>/src/plugins.qbs` with your favorite text editor and add the project file to the reference list (something like `"qmlpreview/qmlpreview.qbs"`).
 
