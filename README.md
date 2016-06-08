@@ -3,7 +3,7 @@ QmlPreviewPlugin for QtCreator
 
 A plugin to preview QML files within QtCreator.
 
-![Overview](readme_resources/overview.png)
+![Overview](documentation/images/overview.png)
 
 Features
 ---------
